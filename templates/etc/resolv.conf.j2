@@ -1,0 +1,6 @@
+# {{ ansible_managed }}
+domain {{ networking_networks | selectattr('name', 'match', networking_home) | map(attribute='domain') | first }}
+search {{ networking_networks | selectattr('name', 'match', networking_home) | sum(attribute='search', start=[]) | join(" ")}}
+{% for server in networking_networks | selectattr('name', 'match', networking_home) | sum(attribute='ns_servers', start=[]) | list %}
+nameserver {{ server }}
+{% endfor %}

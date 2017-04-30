@@ -1,0 +1,49 @@
+# {{ ansible_managed }}
+
+{% if networking_interfaces_defaults | selectattr('name', 'match', item.name) | map(attribute='auto') | first | d(True) %}
+{% if item.auto | d(True) %}
+auto {{ item.nic | d(item.name) }}
+{% else %}
+# auto {{ item.nic | d(item.name) }}
+{% endif %}
+{% else %}
+{% if item.auto | d(False) %}
+auto {{ item.nic | d(item.name) }}
+{% else %}
+# auto {{ item.nic | d(item.name) }}
+{% endif %}
+{% endif %}
+{% if item.ip == 'dhcp' or item.ip == 'loopback' or item.ip == 'manual' %}
+iface {{ item.nic | d(item.name) }} inet {{ item.ip }}
+{% else %}
+iface {{ item.nic | d(item.name) }} inet static
+{% endif %}
+{% if networking_interfaces_defaults | selectattr('name', 'match', item.name) | map(attribute='vlan') | first | d(False) %}
+{% if item.vlan | d(True) %}
+  pre-up ip link add link {{ item.parent | d('bond0') }} name {{ item.name }} type vlan id {{ networking_networks | selectattr('name', 'match', item.name) | map(attribute='vlan') | first }}
+  post-down ip link del {{ item.name }}
+{% endif %}
+{% else %}
+{% if item.vlan | d(False) %}
+  pre-up ip link add link {{ item.parent | d('bond0') }} name {{ item.name }} type vlan id {{ networking_networks | selectattr('name', 'match', item.name) | map(attribute='vlan') | first }}
+  post-down ip link del {{ item.name }}
+{% endif %}
+{% endif %}
+{% if item.ip != 'dhcp' and item.ip != 'loopback' and item.ip != 'manual' %}
+  address {{ item.ip }}
+  netmask {{ networking_networks | selectattr('name', 'match', item.name) | map(attribute='netmask') | first }}
+{% if networking_interfaces_defaults | selectattr('name', 'match', item.name) | map(attribute='gateway') | first | d(False) %}
+{% if item.gateway | d(True) %}
+  gateway {{ networking_networks | selectattr('name', 'match', item.name) | map(attribute='gateway') | first }}
+{% endif %}
+{% else %}
+{% if item.gateway | d(False) %}
+  gateway {{ networking_networks | selectattr('name', 'match', item.name) | map(attribute='gateway') | first }}
+{% endif %}
+{% endif %}
+{% endif %}
+{% if item.additional | d() %}
+{% for line in item.additional %}
+  {{ line }}
+{% endfor %}
+{% endif %}
