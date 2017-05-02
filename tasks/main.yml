@@ -11,6 +11,14 @@
 - name: Copy hosts file
   template: src=etc/hosts.j2 dest=/etc/hosts owner=root group=root mode=0644
 
+- name: Set network info variable name
+  tags: networking::resolv
+  set_fact: networking_info_var=networking_network_{{networking_home}}
+
+- name: Set network info
+  tags: networking::resolv
+  set_fact: networking_info={{hostvars[inventory_hostname][networking_info_var]}}
+
 - name: Copy resolv.conf
   tags: networking::resolv
   template: src=etc/resolv.conf.j2 dest=/etc/resolv.conf owner=root group=root mode=0644
